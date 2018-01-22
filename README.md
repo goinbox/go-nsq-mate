@@ -1,0 +1,1 @@
+# go-nsq-mate
