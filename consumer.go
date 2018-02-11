@@ -19,7 +19,7 @@ type Consumer struct {
 }
 
 func NewConsumer(topic, channel string, config *Config) (*Consumer, error) {
-	c, err := nsq.NewConsumer(topic, channel, config.Config)
+	nc, err := nsq.NewConsumer(topic, channel, config.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -29,55 +29,55 @@ func NewConsumer(topic, channel string, config *Config) (*Consumer, error) {
 		channel: channel,
 
 		config:   config,
-		consumer: c,
+		consumer: nc,
 
 		stopCh: make(chan bool),
 	}, nil
 }
 
-func (this *Consumer) SetHandleFunc(hf HandlerFunc) *Consumer {
-	this.hf = hf
-	this.consumer.AddHandler(this)
+func (c *Consumer) SetHandleFunc(hf HandlerFunc) *Consumer {
+	c.hf = hf
+	c.consumer.AddHandler(c)
 
-	return this
+	return c
 }
 
-func (this *Consumer) SetMsgProcessor(msgProcessor IMessageProcessor) *Consumer {
-	this.msgProcessor = msgProcessor
+func (c *Consumer) SetMsgProcessor(msgProcessor IMessageProcessor) *Consumer {
+	c.msgProcessor = msgProcessor
 
-	return this
+	return c
 }
 
-func (this *Consumer) AddLookupd(addr string) *Consumer {
-	this.lookupdList = append(this.lookupdList, addr)
+func (c *Consumer) AddLookupd(addr string) *Consumer {
+	c.lookupdList = append(c.lookupdList, addr)
 
-	return this
+	return c
 }
 
-func (this *Consumer) HandleMessage(message *nsq.Message) error {
-	body, err := this.msgProcessor.Restore(message.Body)
+func (c *Consumer) HandleMessage(message *nsq.Message) error {
+	body, err := c.msgProcessor.Restore(message.Body)
 	if err != nil {
 		return err
 	}
 
 	message.Body = body
-	return this.hf(&Message{message})
+	return c.hf(&Message{message})
 }
 
-func (this *Consumer) Run() error {
-	err := this.consumer.ConnectToNSQLookupds(this.lookupdList)
+func (c *Consumer) Run() error {
+	err := c.consumer.ConnectToNSQLookupds(c.lookupdList)
 	if err != nil {
 		return err
 	}
 
-	<-this.stopCh
-	this.consumer.Stop()
-	this.stopCh <- true
+	<-c.stopCh
+	c.consumer.Stop()
+	c.stopCh <- true
 
 	return nil
 }
 
-func (this *Consumer) Stop() {
-	this.stopCh <- true
-	<-this.stopCh
+func (c *Consumer) Stop() {
+	c.stopCh <- true
+	<-c.stopCh
 }

@@ -18,8 +18,8 @@ func NewGzipMessageProcessor(processor IMessageProcessor) *gzipMessageProcessor 
 	return &gzipMessageProcessor{processor}
 }
 
-func (this *gzipMessageProcessor) Process(msg []byte) []byte {
-	msg = this.processor.Process(msg)
+func (g *gzipMessageProcessor) Process(msg []byte) []byte {
+	msg = g.processor.Process(msg)
 
 	b := bytes.NewBuffer([]byte{})
 	w := gzip.NewWriter(b)
@@ -30,20 +30,20 @@ func (this *gzipMessageProcessor) Process(msg []byte) []byte {
 	return b.Bytes()
 }
 
-func (this *gzipMessageProcessor) MultiProcess(msgs [][]byte) [][]byte {
-	msgs = this.processor.MultiProcess(msgs)
+func (g *gzipMessageProcessor) MultiProcess(msgs [][]byte) [][]byte {
+	msgs = g.processor.MultiProcess(msgs)
 
 	bs := make([][]byte, len(msgs))
 	for i, msg := range msgs {
-		bs[i] = this.Process(msg)
+		bs[i] = g.Process(msg)
 	}
 
 	return bs
 }
 
-func (this *gzipMessageProcessor) Restore(msg []byte) ([]byte, error) {
+func (g *gzipMessageProcessor) Restore(msg []byte) ([]byte, error) {
 	var err error
-	msg, err = this.processor.Restore(msg)
+	msg, err = g.processor.Restore(msg)
 	if err != nil {
 		return nil, err
 	}

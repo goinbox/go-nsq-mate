@@ -37,97 +37,97 @@ func NewBaseConsumerTask(name string) *BaseConsumerTask {
 	}
 }
 
-func (this *BaseConsumerTask) SetLogger(logger golog.ILogger) *BaseConsumerTask {
-	this.logger = logger
+func (b *BaseConsumerTask) SetLogger(logger golog.ILogger) *BaseConsumerTask {
+	b.logger = logger
 
-	return this
+	return b
 }
 
-func (this *BaseConsumerTask) SetConsumer(consumer *Consumer) *BaseConsumerTask {
-	this.consumer = consumer
-	this.consumer.SetHandleFunc(this.consumerHandleFunc)
+func (b *BaseConsumerTask) SetConsumer(consumer *Consumer) *BaseConsumerTask {
+	b.consumer = consumer
+	b.consumer.SetHandleFunc(b.consumerHandleFunc)
 
-	return this
+	return b
 }
 
-func (this *BaseConsumerTask) SetLineWorker(lineWorkerNum int, lpf LineProcessFunc) *BaseConsumerTask {
-	this.lineWorkerNum = lineWorkerNum
-	this.lineCh = make(chan []byte, lineWorkerNum)
-	this.lpf = lpf
+func (b *BaseConsumerTask) SetLineWorker(lineWorkerNum int, lpf LineProcessFunc) *BaseConsumerTask {
+	b.lineWorkerNum = lineWorkerNum
+	b.lineCh = make(chan []byte, lineWorkerNum)
+	b.lpf = lpf
 
-	this.wg = new(sync.WaitGroup)
-	this.stopCh = make(chan bool, lineWorkerNum)
+	b.wg = new(sync.WaitGroup)
+	b.stopCh = make(chan bool, lineWorkerNum)
 
-	return this
+	return b
 }
 
-func (this *BaseConsumerTask) DebugLog(msg string) {
-	this.logger.Debug([]byte(msg))
+func (b *BaseConsumerTask) DebugLog(msg string) {
+	b.logger.Debug([]byte(msg))
 }
 
-func (this *BaseConsumerTask) InfoLog(msg string) {
-	this.logger.Info([]byte(msg))
+func (b *BaseConsumerTask) InfoLog(msg string) {
+	b.logger.Info([]byte(msg))
 }
 
-func (this *BaseConsumerTask) NoticeLog(msg string) {
-	this.logger.Notice([]byte(msg))
+func (b *BaseConsumerTask) NoticeLog(msg string) {
+	b.logger.Notice([]byte(msg))
 }
 
-func (this *BaseConsumerTask) ErrorLog(msg string) {
-	this.logger.Error([]byte(msg))
+func (b *BaseConsumerTask) ErrorLog(msg string) {
+	b.logger.Error([]byte(msg))
 }
 
-func (this *BaseConsumerTask) WarningLog(msg string) {
-	this.logger.Warning([]byte(msg))
+func (b *BaseConsumerTask) WarningLog(msg string) {
+	b.logger.Warning([]byte(msg))
 }
 
-func (this *BaseConsumerTask) Start() {
-	this.startLineWorker()
-	this.consumer.Run()
+func (b *BaseConsumerTask) Start() {
+	b.startLineWorker()
+	b.consumer.Run()
 }
 
-func (this *BaseConsumerTask) Stop() {
-	this.stopLineWorker()
+func (b *BaseConsumerTask) Stop() {
+	b.stopLineWorker()
 }
 
-func (this *BaseConsumerTask) consumerHandleFunc(message *Message) error {
+func (b *BaseConsumerTask) consumerHandleFunc(message *Message) error {
 	for _, line := range bytes.Split(message.Body, []byte{'\n'}) {
 		if len(line) != 0 {
-			this.lineCh <- line
+			b.lineCh <- line
 		}
 	}
 
 	return nil
 }
 
-func (this *BaseConsumerTask) startLineWorker() {
-	for i := 0; i < this.lineWorkerNum; i++ {
-		go this.lineWorker(i + 1)
-		this.wg.Add(1)
+func (b *BaseConsumerTask) startLineWorker() {
+	for i := 0; i < b.lineWorkerNum; i++ {
+		go b.lineWorker(i + 1)
+		b.wg.Add(1)
 	}
 }
 
-func (this *BaseConsumerTask) stopLineWorker() {
-	this.consumer.Stop()
-	for i := 0; i < this.lineWorkerNum; i++ {
-		this.stopCh <- true
+func (b *BaseConsumerTask) stopLineWorker() {
+	b.consumer.Stop()
+	for i := 0; i < b.lineWorkerNum; i++ {
+		b.stopCh <- true
 	}
 
-	this.wg.Wait()
-	for len(this.lineCh) != 0 {
-		line := <-this.lineCh
-		this.lpf(line, 0)
+	b.wg.Wait()
+	for len(b.lineCh) != 0 {
+		line := <-b.lineCh
+		b.lpf(line, 0)
 	}
 }
 
-func (this *BaseConsumerTask) lineWorker(workerId int) {
-	defer this.wg.Done()
+func (b *BaseConsumerTask) lineWorker(workerId int) {
+	defer b.wg.Done()
 
 	for {
 		select {
-		case line := <-this.lineCh:
-			this.lpf(line, workerId)
-		case <-this.stopCh:
+		case line := <-b.lineCh:
+			b.lpf(line, workerId)
+		case <-b.stopCh:
 			return
 		}
 	}
